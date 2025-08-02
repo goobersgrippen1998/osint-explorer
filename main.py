@@ -1,46 +1,55 @@
 ```python
 import requests
 from bs4 import BeautifulSoup
-import whois
+import argparse
 
-# Function to perform a basic DNS lookup using the whois library
-def get_domain_info(domain):
-    try:
-        domain_info = whois.whois(domain)
-        return domain_info
-    except Exception as e:
-        print(f"Error retrieving WHOIS info: {e}")
-        return None
-
-# Function to scrape the title of a webpage
-def scrape_webpage_title(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an error for bad status codes
-        soup = BeautifulSoup(response.text, 'html.parser')
-        title = soup.title.string if soup.title else 'No title found'
-        return title
-    except requests.RequestException as e:
-        print(f"Error fetching {url}: {e}")
-        return None
-
-# Main function to execute the OSINT tasks
-def main():
-    domain = input("Enter a domain (e.g., example.com): ")
+def fetch_ip_info(ip_address):
+    """
+    Fetches information about a given IP address using an online API.
     
-    # Get WHOIS information
-    print(f"\nRetrieving WHOIS info for {domain}...")
-    domain_info = get_domain_info(domain)
-    if domain_info:
-        print("WHOIS Information:")
-        print(domain_info)
+    Args:
+        ip_address (str): The IP address to query.
+    
+    Returns:
+        dict: Parsed JSON response containing IP information.
+    """
+    try:
+        # API endpoint for IP geolocation
+        url = f'https://ipinfo.io/{ip_address}/json'
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an error for bad responses
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching data for {ip_address}: {e}")
+        return None
 
-    # Get website title
-    url = f"http://{domain}"
-    print(f"\nFetching title for {url}...")
-    title = scrape_webpage_title(url)
-    if title:
-        print(f"Title of the webpage: {title}")
+def display_info(ip_info):
+    """
+    Displays the information retrieved for an IP address.
+    
+    Args:
+        ip_info (dict): The information about the IP address.
+    """
+    if ip_info:
+        print(f"IP Address: {ip_info.get('ip')}")
+        print(f"Hostname: {ip_info.get('hostname', 'N/A')}")
+        print(f"City: {ip_info.get('city', 'N/A')}")
+        print(f"Region: {ip_info.get('region', 'N/A')}")
+        print(f"Country: {ip_info.get('country', 'N/A')}")
+        print(f"Location: {ip_info.get('loc', 'N/A')}")
+        print(f"Organization: {ip_info.get('org', 'N/A')}")
+    else:
+        print("No information available.")
+
+def main():
+    # Setting up argument parsing for command line usage
+    parser = argparse.ArgumentParser(description='Fetch IP address information.')
+    parser.add_argument('ip', type=str, help='IP address to lookup')
+    args = parser.parse_args()
+
+    # Fetch and display IP information
+    ip_info = fetch_ip_info(args.ip)
+    display_info(ip_info)
 
 if __name__ == "__main__":
     main()
